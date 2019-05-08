@@ -1,0 +1,16 @@
+
+# Text search
+
+## start
+```sh
+npm start [./path_to_folder]
+```
+Default path is current directory
+
+## test and coverage 100%
+for testing used lib: mocha
+for coverage used lib: nyc
+```sh
+npm install
+npm test
+```

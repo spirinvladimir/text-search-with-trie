@@ -1,0 +1,31 @@
+{
+  "name": "search",
+  "version": "1.0.0",
+  "description": "Search text in files",
+  "scripts": {
+    "start": "node index",
+    "test": "nyc mocha"
+  },
+  "devDependencies": {
+    "mocha": "6.0.2",
+    "nyc": "13.3.0"
+  },
+  "nyc": {
+    "check-coverage": true,
+    "per-file": false,
+    "statements": 100,
+    "branches": 100,
+    "functions": 100,
+    "lines": 100,
+    "include": [
+      "search_engine.js"
+    ],
+    "reporter": [
+      "html",
+      "text-summary"
+    ],
+    "all": true
+  },
+  "author": "spirin.vladimir@gmail.com",
+  "license": "ISC"
+}

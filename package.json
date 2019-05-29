@@ -1,12 +1,14 @@
 {
-  "name": "search",
+  "name": "text-search-with-trie",
   "version": "1.0.0",
   "description": "Search text in files",
   "scripts": {
+    "report": "nyc report --reporter=text-lcov | coveralls",
     "start": "node index",
-    "test": "nyc mocha"
+    "test": "nyc mocha -b; npm run report"
   },
   "devDependencies": {
+    "coveralls": "3.0.3",
     "mocha": "6.0.2",
     "nyc": "13.3.0"
   },

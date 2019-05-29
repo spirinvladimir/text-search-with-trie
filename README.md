@@ -13,7 +13,7 @@ Default path is current directory
 ## test and coverage
 for testing used lib: mocha
 for coverage used lib: nyc
-```sh
+```bash
 npm install
 npm test
 ```

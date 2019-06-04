@@ -24,14 +24,15 @@ if (files.length === 0) process.exit(1)
 // Indexing folder content to TRIE (base data structure for fast text search requests)
 // props - fast search
 // cons  - slow indexing
-console.log('indexing...')
+
+console.time('indexing...')
 var trie = files.reduce(
     (trie, id) => {
         return insert_doc(trie, {id, text: fs.readFileSync(id, 'utf8')})
     },
-    create_trie({})
+    create_trie()
 )
-
+console.timeEnd('indexing...')
 rl.prompt()
 rl.on('line', line => {
     var results = search(trie, line)

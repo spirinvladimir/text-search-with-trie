@@ -8,9 +8,15 @@
 // Leaves nodes: [t, p, t, g]
 // Each leave have a collection of doc
 
+var char2letter = {}
+var letter2char = []
 // Search request of splited by letters and go down from root to leave, response is aggregation values from a leaves
 function create_letters (word) {
-    return word.split('')
+    return word.split('').map(char => {
+        if (char2letter[char] !== undefined) return char2letter[char]
+        char2letter[char] = letter2char.length
+        return letter2char.push(char) - 1
+    })
 }
 
 // Split text by words for indexing words
@@ -34,6 +40,12 @@ function doc2words (doc) {
     )
 }
 
+// node = [LETTER, DOCS, NEXT]
+var DOCS = 0
+var NEXT = 1
+var ID = 0
+var FREQ = 1
+
 function insert_word (trie, word, doc) {
     var letters = word
     var letter
@@ -42,15 +54,36 @@ function insert_word (trie, word, doc) {
     //fill trie from root to leave by each letter from a word
     node = letters.reduce(
         (node, letter) => {
-            node[letter] = node[letter] || {}
-            return node[letter]
+            node[NEXT][letter] = node[NEXT][letter] || [[], []]
+            return node[NEXT][letter]
         },
         trie
     )
 
     // add document id to leave
-    node.docs = node.docs || []
-    node.docs.push(doc.id)
+    var $ = node[DOCS]
+    var reaction = 1
+    var i = $.findIndex(_ => _[0] == doc.id)
+    if (i === -1) {
+        $.push([doc.id, reaction])
+    } else {
+        $[i][FREQ] += reaction
+        var tmp
+        if (reaction === 1)
+          while ($[i - 1] && $[i - 1][1] < $[i][1]) {
+              tmp = $[i - 1]
+              $[i - 1] = $[i]
+              $[i] = tmp
+              i--
+          }
+        else
+          while ($[i + 1] && $[i + 1][1] > $[i][1]) {
+              tmp = $[i + 1]
+              $[i + 1] = $[i]
+              $[i] = tmp
+              i++
+          }
+    }
 
     return trie
 }
@@ -64,28 +97,22 @@ function insert_doc (trie, doc) {
     )
 }
 
-function search_word (trie, word) {
-    var letters = word
-    var node = trie
-    var letter
-
-    while (letter = letters.shift()) {
-        node = node[letter]
-        if (node === undefined) return []
+function search_word (node, word) {
+    while (word.length) {
+      node = node[NEXT][word.shift()]
+      if (node === undefined) return []
     }
 
-    if (node === undefined || node.docs === undefined) return []
-
-    return node.docs
+    return node[DOCS]
 }
 
 function search_words (trie, words) {
     var rank_per_doc = words.reduce(
         (rank_per_doc, word) =>
             search_word(trie, word).reduce(
-                (rank_per_doc, id) => {
-                    rank_per_doc[id] = rank_per_doc[id] || 0
-                    rank_per_doc[id] += 1
+                (rank_per_doc, doc) => {
+                    rank_per_doc[doc[ID]] = rank_per_doc[doc[ID]] || 0
+                    rank_per_doc[doc[ID]] += 1
                     return rank_per_doc
                 },
                 rank_per_doc
@@ -105,8 +132,8 @@ function search (trie, text) {
     return search_words(trie, text2words(text).map(create_letters))
 }
 
-function create_trie (trie) {
-    return trie
+function create_trie () {
+    return [[], []]
 }
 
 

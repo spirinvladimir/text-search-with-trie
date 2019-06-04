@@ -7,7 +7,7 @@ describe('Text search', () => {
         var trie = [
             {id: './doc1', text: 'cat'    },
             {id: './doc2', text: 'cat dog'},
-        ].reduce(insert_doc, create_trie({}))
+        ].reduce(insert_doc, create_trie())
 
         assert.deepEqual(
             search(trie, 'cat dog'),
@@ -21,7 +21,7 @@ describe('Text search', () => {
     it('should cache same words in a document', () => {
         var trie = [
             {id: './doc', text: 'cat cat'}
-        ].reduce(insert_doc, create_trie({}))
+        ].reduce(insert_doc, create_trie())
 
         assert.deepEqual(
             search(trie, 'cat'),
@@ -34,7 +34,7 @@ describe('Text search', () => {
     it('should not find not exist word', () => {
         var trie = [
             {id: './doc', text: 'cat'}
-        ].reduce(insert_doc, create_trie({}))
+        ].reduce(insert_doc, create_trie())
 
         assert.deepEqual(
             search(trie, 'dog'),
@@ -45,7 +45,7 @@ describe('Text search', () => {
     it('should not find word if it is a part of another word', () => {
         var trie = [
             {id: './doc', text: 'butterfly'}
-        ].reduce(insert_doc, create_trie({}))
+        ].reduce(insert_doc, create_trie())
 
         assert.deepEqual(
             search(trie, 'butter'),

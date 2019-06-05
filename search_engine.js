@@ -8,15 +8,25 @@
 // Leaves nodes: [t, p, t, g]
 // Each leave have a collection of doc
 
-var char2letter = {}
-var letter2char = []
+function create_sn_map () {
+    var
+        s2n = {},
+        n2s = []
+
+    return {
+        s: s => {
+            var n = s2n[s]
+            if (typeof n === 'number') return n
+            s2n[s] = n2s.length
+            return n2s.push(s) - 1
+        },
+        n: n => n2s[n]
+    }
+}
+
 // Search request of splited by letters and go down from root to leave, response is aggregation values from a leaves
-function create_letters (word) {
-    return word.split('').map(char => {
-        if (char2letter[char] !== undefined) return char2letter[char]
-        char2letter[char] = letter2char.length
-        return letter2char.push(char) - 1
-    })
+function create_letters (char_sn_map_s, word) {
+    return word.split('').map(char_sn_map_s)
 }
 
 // Split text by words for indexing words
@@ -29,11 +39,11 @@ function text2words (text) {
 // Lets increese speed of indexing each document by
 // avoid adding same word from same document.
 // List of words -> Set of words (no duplicates)
-function doc2words (doc) {
-    return text2words(doc.text).reduce(
+function doc2words (char_sn_map_s, text) {
+    return text2words(text).reduce(
         (words, new_word) => {
             if (words.findIndex(_ => _.join('') === new_word) === -1)
-                words.push(create_letters(new_word))
+                words.push(create_letters(char_sn_map_s, new_word))
             return words
         },
         []
@@ -89,8 +99,8 @@ function insert_word (trie, word, doc) {
 }
 
 function insert_doc (trie, doc) {
-    var words = doc2words(doc)
-
+    var words = doc2words(trie[0].char_sn_map.s, doc.text)
+    doc.id = trie[0].word_sn_map.s(doc.id)
     return words.reduce(
         (trie, word) => insert_word(trie, word, doc),
         trie
@@ -122,18 +132,21 @@ function search_words (trie, words) {
 
     return Object.keys(rank_per_doc).map(id => {
         return {
-            id,
+            id: trie[0].word_sn_map.n(id),
             rank: rank_per_doc[id] / words.length
         }
     }).sort((a, b) => b.rank - a.rank)// hightest rank at top
 }
 
 function search (trie, text) {
-    return search_words(trie, text2words(text).map(create_letters))
+    return search_words(trie, text2words(text).map(word => create_letters(trie[0].char_sn_map.s, word)))
 }
 
 function create_trie () {
-    return [[], []]
+    var char_sn_map = create_sn_map()
+    var word_sn_map = create_sn_map()
+
+    return [{char_sn_map, word_sn_map}, []]
 }
 
 

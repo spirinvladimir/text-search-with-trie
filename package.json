@@ -29,5 +29,13 @@
     "all": true
   },
   "author": "spirin.vladimir@gmail.com",
-  "license": "ISC"
+  "license": "ISC",
+  "dependencies": {
+    "avsc": "^5.4.10",
+    "bson": "^4.0.2",
+    "lz4": "^0.6.2",
+    "msgpack5": "^4.2.1",
+    "snappy": "^6.2.2",
+    "yamljs": "^0.3.0"
+  }
 }

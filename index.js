@@ -8,37 +8,69 @@ var rl = readline.createInterface({
   prompt: 'search> '
 })
 var {create_trie, insert_doc, search} = require('./search_engine')
+var { promisify } = require('util')
+var { resolve } = require('path')
+var readdir = promisify(fs.readdir)
+var stat = promisify(fs.stat)
+var readFile = promisify(fs.readFile)
 
-// Convert dirname to list filenames
-// String  -> [String]
 function file_list (dir) {
-    return fs.readdirSync(dir).reduce((list, file) => {
-        var name = path.join(dir, file)
-        return list.concat(fs.statSync(name).isDirectory() ? file_list(name) : [name])
-    }, [])
+    return readdir(dir)
+        .then(files =>
+            Promise.all(
+                files.map(id => {
+                    id = resolve(dir, id)
+                    return stat(id).then(stats =>
+                        stats.isDirectory()
+                            ? file_list(id)
+                            : {id, size: stats.size}
+                    )
+                })
+            )
+                .then(deep => deep.reduce((flat, i) => flat.concat(i), []))
+        )
 }
 
-var files = file_list(process.argv.slice(2)[0] || '.')
-if (files.length === 0) process.exit(1)
+
+
+file_list(process.argv.slice(2)[0] || '.').then(items => {
+    if (items.length === 0) process.exit(1)
+
+    var files = items.map(item => item.id)
+    var total_size = items.reduce((size, item) => size + item.size, 0)
+
+    console.log('Count files:', files.length)
+    console.log('Total size:', total_size)
 
 // Indexing folder content to TRIE (base data structure for fast text search requests)
 // props - fast search
 // cons  - slow indexing
 
-console.time('indexing...')
-var trie = files.reduce(
-    (trie, id) => {
-        return insert_doc(trie, {id, text: fs.readFileSync(id, 'utf8')})
-    },
-    create_trie()
-)
-console.timeEnd('indexing...')
-rl.prompt()
-rl.on('line', line => {
-    var results = search(trie, line)
-    if (results.length === 0) console.log('no matches found')
-    else results
-        .filter((_, i) => i < config.max_docs_count)
-        .forEach(file => console.log(Math.round(100 * file.rank) + '%\t' + file.id))
-    rl.prompt()
-}).on('close', () => process.exit(0))
+    console.time('indexing...')
+
+    var trie = create_trie()
+
+    var done = 0
+    console.log(1)
+    Promise.all(
+        items.map(({id, size}) =>
+            console.log(2) || readFile(id, 'utf8').then(text => {
+                console.log(3) || insert_doc(trie, {id, text})
+                done += size
+                console.log(done / total_size)
+            })
+        )
+    )
+        .then(() => {
+            console.timeEnd('indexing...')
+            rl.prompt()
+            rl.on('line', line => {
+                var results = search(trie, line)
+                if (results.length === 0) console.log('no matches found')
+                else results
+                    .filter((_, i) => i < config.max_docs_count)
+                    .forEach(file => console.log(Math.round(100 * file.rank) + '%\t' + file.id))
+                rl.prompt()
+            }).on('close', () => process.exit(0))
+    })
+})

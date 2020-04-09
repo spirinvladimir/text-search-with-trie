@@ -8,6 +8,8 @@
 // Leaves nodes: [t, p, t, g]
 // Each leave have a collection of doc
 
+var zlib = require('zlib')
+
 function create_sn_map () {
     var
         s2n = {},
@@ -55,6 +57,7 @@ var DOCS = 0
 var NEXT = 1
 var ID = 0
 var FREQ = 1
+var LETTER = 2
 
 function insert_word (trie, word, doc) {
     var letters = word
@@ -77,7 +80,7 @@ function insert_word (trie, word, doc) {
     if (i === -1) {
         $.push([doc.id, reaction])
     } else {
-        $[i][FREQ] += reaction
+        $[i][FREQ] = Math.min(255, $[i][FREQ] + reaction)
         var tmp
         if (reaction === 1)
           while ($[i - 1] && $[i - 1][1] < $[i][1]) {
@@ -146,10 +149,74 @@ function create_trie () {
     var char_sn_map = create_sn_map()
     var word_sn_map = create_sn_map()
 
-    return [{char_sn_map, word_sn_map}, []]
+    return [{char_sn_map, word_sn_map}, [], 0]
 }
 
+function to_buffer (trie) {
+    var size = buffers => buffers.reduce((size, buffer) => size + buffer.byteLength, 0)
+    var tmp = trie[DOCS]
+    trie[DOCS] = []
+
+    function pack_deep (node) {
+        var b_next_nodes = node[NEXT]
+            .reduce(
+                (acc, next_node, letter) => {
+                    next_node[LETTER] = letter
+                    acc.push(next_node)
+
+                    return acc
+                },
+                []
+            ).map(next_node => pack_deep(next_node))
+
+        var bnext = Buffer.concat(b_next_nodes, size(b_next_nodes))
+
+        var letter = Buffer(1)
+        letter.writeUInt8(node[LETTER])
+        var res = Buffer.concat(
+            node[DOCS].map((a, i) => {
+                var id = a[0]
+                var freq = a[1]
+                var b_id = Buffer(1)
+                b_id.writeUInt8(id)
+                var b_freq = Buffer(1)
+                b_freq.writeUInt8(freq)
+                return Buffer.concat([b_id, b_freq], 2)
+            }),
+            node[DOCS].length * 2/* uint8 size is 1 byte */
+        )
+
+        var info_res = Buffer(1)//have to calculate how much bytes request biggest node[DOCS]
+        info_res.writeUInt8(res.byteLength)
+
+        var bnode = Buffer.concat(
+            [
+                letter,
+                info_res,
+                res,
+                bnext
+            ],
+            size([letter, info_res, res, bnext])
+        )
+
+        var info = Buffer(4)
+        info.writeUInt32BE(bnode.byteLength)
+
+        return Buffer.concat(
+            [
+                info,
+                bnode
+            ],
+            size([info, bnode])
+        )
+    }
+
+    var pack = pack_deep(trie)
+    trie[DOCS] = tmp
+    return pack
+}
 
 module.exports.create_trie = create_trie
 module.exports.insert_doc = insert_doc
 module.exports.search = search
+module.exports.to_buffer = to_buffer

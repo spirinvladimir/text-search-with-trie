@@ -1,5 +1,5 @@
 var assert = require('assert')
-var {create_trie, insert_doc, search} = require('./search_engine')
+var {create_trie, insert_doc, search, to_buffer} = require('./search_engine')
 
 describe('Text search', () => {
 
@@ -53,4 +53,24 @@ describe('Text search', () => {
         )
     })
 
+    it('should not find word if it is a part of another word', () => {
+        var trie = [
+            {id: './doc', text: 'butterfly'}
+        ].reduce(insert_doc, create_trie())
+
+        assert.deepEqual(
+            search(trie, 'butter'),
+            []
+        )
+    })
+
+    it('.to_buffer(trie) should return buffer', () => {
+        var trie = [
+            {id: './my.txt', text: 'cat'}
+        ].reduce(insert_doc, create_trie())
+
+        assert.ok(
+            to_buffer(trie) instanceof Buffer
+        )
+    })
 })

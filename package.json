@@ -29,7 +29,7 @@
     "all": true
   },
   "author": "spirin.vladimir@gmail.com",
-  "license": "ISC",
+  "license": "GPL-2.0-or-later",
   "dependencies": {
     "avsc": "^5.4.10",
     "bson": "^4.0.2",

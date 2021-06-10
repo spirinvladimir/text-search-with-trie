@@ -20,14 +20,14 @@ var {create_trie, insert_doc, search} = require('./search_engine')
 function file_list (dir) {
     return fs.readdirSync(dir).reduce((list, file) => {
         var name = path.join(dir, file)
-        return list.concat(fs.statSync(name).isDirectory() ? file_list(name) : [name])
+        return list.concat(fs.statSync(name).isDirectory() ? file_list(name) : name)
     }, [])
 }
 
 console.time('indexing...')
 
 new Promise((y, n) =>
-    fs.readFile('cache.gz-----', (e, buffer) => {
+    fs.readFile('cache.gz', (e, buffer) => {
         var trie
 
         if (!e) {
@@ -73,14 +73,11 @@ new Promise((y, n) =>
             fn = 'cache~yaml-lz4';fs.writeFileSync(fn, lz4.encode(yaml));console.log(fn)
             fn = 'cache~yaml-snappy';fs.writeFileSync(fn, snappy.compressSync(yaml));console.log(fn)
 
-
             y(trie)
         }
     })
 ).then(trie => {
     console.timeEnd('indexing...')
-
-    process.exit(0)//Buy!
 
     rl.prompt()
     rl.on('line', line => {
